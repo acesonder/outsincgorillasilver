@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OUTSINC - Mixed Reality Detection</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen active">
+        <div class="clouds-background"></div>
+        <div class="logo-container">
+            <h1 class="outsinc-logo">OUTSINC</h1>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="main-menu hidden">
+        <div class="menu-container">
+            <h1 class="menu-title">OUTSINC</h1>
+            <div class="menu-buttons">
+                <button id="start-btn" class="menu-button">Start New Session</button>
+                <button id="view-items-btn" class="menu-button">View Saved Items</button>
+                <button id="settings-btn" class="menu-button">Settings</button>
+                <button id="diagnostics-btn" class="menu-button">Diagnostics</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MR Detection View -->
+    <div id="mr-view" class="mr-view hidden">
+        <div id="video-container" class="video-container">
+            <video id="camera-feed" autoplay playsinline></video>
+            <canvas id="detection-canvas"></canvas>
+            <div id="bubbles-container" class="bubbles-container"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="back-to-menu-btn" class="control-button">Menu</button>
+            <button id="toggle-detection-btn" class="control-button">Pause Detection</button>
+            <div class="stats">
+                <span id="detected-count">Detected: 0</span>
+                <span id="tracked-count">Tracked: 0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Items Viewer -->
+    <div id="saved-items-view" class="saved-items-view hidden">
+        <div class="view-header">
+            <h2>Saved Items</h2>
+            <button id="close-items-btn" class="close-button">Back</button>
+        </div>
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="person">Humans</button>
+            <button class="filter-tab" data-filter="vehicle">Vehicles</button>
+        </div>
+        <div id="items-grid" class="items-grid"></div>
+    </div>
+
+    <!-- Entity Detail Editor -->
+    <div id="entity-editor" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="editor-title">Edit Entity</h3>
+                <button id="close-editor-btn" class="close-button">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" id="entity-name" class="form-control" placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select id="entity-status" class="form-control">
+                        <option value="unknown">Unknown (Red)</option>
+                        <option value="unverified">Unverified (Yellow)</option>
+                        <option value="verified">Verified (Green)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type:</label>
+                    <input type="text" id="entity-type" class="form-control" readonly>
+                </div>
+                <div class="info-group">
+                    <h4>Statistics</h4>
+                    <div class="stat-item">
+                        <span class="stat-label">First Seen:</span>
+                        <span id="first-seen" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Seen:</span>
+                        <span id="last-seen" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Distance:</span>
+                        <span id="last-distance" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Sightings:</span>
+                        <span id="total-sightings" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item" id="license-plate-group" style="display: none;">
+                        <span class="stat-label">License Plate:</span>
+                        <span id="license-plate" class="stat-value">-</span>
+                    </div>
+                </div>
+                <div class="screenshots-section">
+                    <h4>Screenshots</h4>
+                    <div id="screenshots-grid" class="screenshots-grid"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-entity-btn" class="button-primary">Save</button>
+                <button id="delete-entity-btn" class="button-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settings-view" class="settings-view hidden">
+        <div class="view-header">
+            <h2>Settings</h2>
+            <button id="close-settings-btn" class="close-button">Back</button>
+        </div>
+        <div class="settings-container">
+            <div class="setting-group">
+                <h3>Detection Settings</h3>
+                <div class="setting-item">
+                    <label>Detection Sensitivity:</label>
+                    <input type="range" id="detection-sensitivity" min="0.1" max="1.0" step="0.1" value="0.5">
+                    <span id="sensitivity-value">0.5</span>
+                </div>
+                <div class="setting-item">
+                    <label>Detection Interval (ms):</label>
+                    <input type="number" id="detection-interval" min="100" max="5000" step="100" value="1000">
+                </div>
+                <div class="setting-item">
+                    <label>Max Detection Distance (m):</label>
+                    <input type="number" id="max-distance" min="1" max="50" step="1" value="20">
+                </div>
+            </div>
+            <div class="setting-group">
+                <h3>Display Settings</h3>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="show-labels" checked>
+                        Show Labels on Bubbles
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="auto-screenshot" checked>
+                        Auto Screenshot on Detection
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="show-distance" checked>
+                        Show Distance Information
+                    </label>
+                </div>
+            </div>
+            <div class="setting-group">
+                <h3>Storage Settings</h3>
+                <div class="setting-item">
+                    <label>Max Screenshots per Entity:</label>
+                    <input type="number" id="max-screenshots" min="1" max="50" step="1" value="10">
+                </div>
+                <div class="setting-item">
+                    <button id="clear-storage-btn" class="button-danger">Clear All Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnostics View -->
+    <div id="diagnostics-view" class="diagnostics-view hidden">
+        <div class="view-header">
+            <h2>Diagnostics</h2>
+            <button id="close-diagnostics-btn" class="close-button">Back</button>
+        </div>
+        <div class="diagnostics-container">
+            <div class="diag-section">
+                <h3>System Information</h3>
+                <div id="system-info"></div>
+            </div>
+            <div class="diag-section">
+                <h3>Camera Status</h3>
+                <div id="camera-status"></div>
+            </div>
+            <div class="diag-section">
+                <h3>Storage Status</h3>
+                <div id="storage-status"></div>
+            </div>
+            <div class="diag-section">
+                <h3>Detection Performance</h3>
+                <div id="performance-stats"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/detection.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
